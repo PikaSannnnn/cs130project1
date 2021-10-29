@@ -13,7 +13,8 @@ Hit Sphere::Intersection(const Ray& ray, int part) const
     double a, b, c;
 
     a = u.magnitude_squared();
-    b = dot((u * 2), (e - this->center));
+    // b = dot((u * 2), (e - this->center));
+    b = 2 * dot(u, (e - this->center));
     c = dot((e - this->center), (e - this->center)) - std::pow(this->radius, 2);
 
     double determin = std::pow(b, 2) - (4 * a * c);

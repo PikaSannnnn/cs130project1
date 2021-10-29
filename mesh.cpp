@@ -50,8 +50,16 @@ Hit Mesh::Intersection(const Ray& ray, int part) const
 vec3 Mesh::Normal(const vec3& point, int part) const
 {
     assert(part>=0);
-    TODO;
-    return vec3();
+
+    // How to get the triangle?
+
+    vec3 a = vertices[/*triangle index A*/];
+    vec3 b = vertices[/*triangle index B*/];
+    vec3 c = vertices[/*triangle index C*/];
+
+    vec3 n = cross(b - a, c - a);
+
+    return vec3(n.normalized());
 }
 
 // This is a helper routine whose purpose is to simplify the implementation
