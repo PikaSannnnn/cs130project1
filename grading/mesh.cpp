@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "plane.h"
 #include <fstream>
 #include <string>
 #include <limits>
@@ -42,16 +43,49 @@ void Mesh::Read_Obj(const char* file)
 // Check for an intersection against the ray.  See the base class for details.
 Hit Mesh::Intersection(const Ray& ray, int part) const
 {
-    TODO;
-    return {};
+    Hit intersection = {0,0,0};
+    if (part < 0) { // need to check every individual triangle in mesh
+        double closest = std::numeric_limits<double>::max();
+        intersection.dist = closest;    // set current distance to "infinite" or no intersection
+        // for (auto triangle : triangles) {
+        int numtri = triangles.size();
+        for (int i = 0; i < numtri; i++) {
+            if (Intersect_Triangle(ray, i, closest)) {  // if triangle intersects
+                if (closest < intersection.dist) {
+                    intersection.part = i;
+                    intersection.object = this;
+                    intersection.dist = closest;
+                }
+            }
+        }
+    }
+    else {  // given not -1, return this triangle instead
+        if (Intersect_Triangle(ray, part, intersection.dist)) {
+            intersection.part = part;
+            intersection.object = this;
+        }
+    }
+
+    return intersection;
 }
 
 // Compute the normal direction for the triangle with index part.
 vec3 Mesh::Normal(const vec3& point, int part) const
 {
     assert(part>=0);
-    TODO;
-    return vec3();
+
+    // How to get the triangle?
+    ivec3 triangle = triangles[part];   // get triangle w/ vertex indices
+
+    // A = 0, B = 1, C = 2, D = 3, ...
+    // triangle stores vertex's index
+    vec3 a = vertices[triangle[0]];
+    vec3 b = vertices[triangle[1]];
+    vec3 c = vertices[triangle[2]];
+
+    vec3 n = cross(b - a, c - a);
+
+    return vec3(n.normalized());
 }
 
 // This is a helper routine whose purpose is to simplify the implementation
@@ -68,7 +102,35 @@ vec3 Mesh::Normal(const vec3& point, int part) const
 // two triangles.
 bool Mesh::Intersect_Triangle(const Ray& ray, int tri, double& dist) const
 {
-    TODO;
+    ivec3 triangle = triangles[tri];
+    vec3 a = vertices[triangle[0]];
+    vec3 b = vertices[triangle[1]];
+    vec3 c = vertices[triangle[2]];
+    vec3 normal = Normal(a, tri);   // a is disregarded
+
+    Plane tri_plane(a, normal);
+    Hit intersection = tri_plane.Intersection(ray, tri);
+    vec3 p = ray.endpoint + (ray.direction * intersection.dist);    // calculating point given ray's endpoint & getting direction multiplied to plane's intersection distance
+
+    if (intersection.object == nullptr) {
+        return false;
+    }
+
+    // Area(subtriangle) / Area(abc)
+    double gamma = dot(cross(b - a, p - a), normal) /
+                    dot(cross(b - a, c - a), normal);
+    double alpha = dot(cross(b - p, c - p), normal) /
+                    dot(cross(b - a, c - a), normal);
+    double beta = dot(cross(p - a, c - a), normal) /
+                    dot(cross(b - a, c - a), normal);                
+
+    if (gamma > -weight_tol && alpha > -weight_tol && beta > -weight_tol) {
+        if (gamma < (1 + weight_tol) && alpha < (1 + weight_tol) && beta < (1 + weight_tol)) {
+            dist = intersection.dist;
+            return true;
+        }
+    }
+
     return false;
 }
 

@@ -106,22 +106,23 @@ bool Mesh::Intersect_Triangle(const Ray& ray, int tri, double& dist) const
     vec3 a = vertices[triangle[0]];
     vec3 b = vertices[triangle[1]];
     vec3 c = vertices[triangle[2]];
+    vec3 normal = Normal(a, tri);   // a is disregarded
 
-    vec3 p = ray.endpoint + ray.direction * dist;
-    Plane tri_plane(a, Normal(a, tri));
+    Plane tri_plane(a, normal);
     Hit intersection = tri_plane.Intersection(ray, tri);
+    vec3 p = ray.endpoint + (ray.direction * intersection.dist);    // calculating point given ray's endpoint & getting direction multiplied to plane's intersection distance
 
     if (intersection.object == nullptr) {
         return false;
     }
 
     // Area(subtriangle) / Area(abc)
-    double gamma = cross(b - a, p - a).magnitude() /
-                    cross(b - a, c - a).magnitude();
-    double alpha = cross(b - p, c - p).magnitude() /
-                    cross(b - a, c - a).magnitude();
-    double beta = cross(p - a, b - a).magnitude() /
-                    cross(b - a, c - a).magnitude();                
+    double gamma = dot(cross(b - a, p - a), normal) /
+                    dot(cross(b - a, c - a), normal);
+    double alpha = dot(cross(b - p, c - p), normal) /
+                    dot(cross(b - a, c - a), normal);
+    double beta = dot(cross(p - a, c - a), normal) /
+                    dot(cross(b - a, c - a), normal);                
 
     if (gamma > -weight_tol && alpha > -weight_tol && beta > -weight_tol) {
         if (gamma < (1 + weight_tol) && alpha < (1 + weight_tol) && beta < (1 + weight_tol)) {
